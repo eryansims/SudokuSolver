@@ -1,8 +1,11 @@
 package com.ryansims.sudoku;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * This program is a Sudoku Solver. If you get stuck while playing Sudoku, you can
@@ -16,9 +19,48 @@ public class Sudoku {
     private static final int[][] validRegionOffsets = new int[][]{
             {0, 0}, {3, 0}, {6, 0}, {0, 3}, {3, 3}, {6, 3}, {0, 6}, {3, 6}, {6, 6}};
 
+
+    private static final String impossible
+            = ". . . |. . 5 |. 8 . \n" +
+              ". . . |6 . 1 |. 4 3 \n" +
+              ". . . |. . . |. . . \n" +
+              "------+------+------\n" +
+              ". 1 . |5 . . |. . . \n" +
+              ". . . |1 . 6 |. . . \n" +
+              "3 . . |. . . |. . 5 \n" +
+              "------+------+------\n" +
+              "5 3 . |. . . |. 6 1 \n" +
+              ". . . |. . . |. . 4 \n" +
+              ". . . |. . . |. . .\n";
+    private static final String hardForNorvig
+            = ".....6....59.....82....8....45........3........6..3.54...325..6..................";
+    private static final String hardestEverForHumans
+            = "..53.....\n" +
+              "8......2.\n" +
+              ".7..1.5..\n" +
+              "4....53..\n" +
+              ".1..7...6\n" +
+              "..32...8.\n" +
+              ".6.5....9\n" +
+              "..4....3.\n" +
+              ".....97..\n";
+
     // https://projecteuler.net/index.php?section=problems&id=96
     public static final String completeValidPuzzle
             = "4 8 3 | 9 2 1 | 6 5 7 \n" +
+              "9 6 7 | 3 4 5 | 8 2 1 \n" +
+              "2 5 1 | 8 7 6 | 4 9 3 \n" +
+              "------+-------+-------\n" +
+              "5 4 8 | 1 3 2 | 9 7 6 \n" +
+              "7 2 9 | 5 6 4 | 1 3 8 \n" +
+              "1 3 6 | 7 9 8 | 2 4 5 \n" +
+              "------+-------+-------\n" +
+              "3 7 2 | 6 8 9 | 5 1 4 \n" +
+              "8 1 4 | 2 5 3 | 7 6 9 \n" +
+              "6 9 5 | 4 1 7 | 3 8 2 \n";
+
+    public static final String nearlyNearlyCompleteValidPuzzle
+            = "4 . . | 9 2 1 | 6 5 7 \n" +
               "9 6 7 | 3 4 5 | 8 2 1 \n" +
               "2 5 1 | 8 7 6 | 4 9 3 \n" +
               "------+-------+-------\n" +
@@ -73,7 +115,7 @@ public class Sudoku {
 
 
     public static void main(String args[]) {
-        int[][] decoded = decodePuzzle(nearlyCompleteValidPuzzle);
+        int[][] decoded = decodePuzzle(impossible);
         System.out.println("Input puzzle is:\n");
         System.out.println(puzzleToPrettyString(decoded));
         System.out.println("Input puzzle isComplete " + isComplete(decoded));
@@ -83,6 +125,7 @@ public class Sudoku {
             System.out.println("Solved puzzle:\n");
             System.out.println(puzzleToPrettyString(solved));
         } catch (Exception e) {
+            e.printStackTrace();
             System.err.println("Puzzle is unsolvable");
         }
     }
@@ -98,22 +141,28 @@ public class Sudoku {
         int rowOffset = firstEmptyOffset[1];
         int columnOffset = firstEmptyOffset[0];
         System.out.println("rowOffset: " + rowOffset + ", columnOffset: " + columnOffset);
-        boolean[] rowValues = getValuesAllowedByRow(puzzle, rowOffset);
-        boolean[] columnValues = getValuesAllowedByColumn(puzzle, columnOffset);
-        boolean[] regionValues = getValuesAllowedByRegion(puzzle, columnOffset, rowOffset);
-        int[] allowedValues = new int[9];
-        for (int i = 1; i < rowValues.length; i++) {
-            if (rowValues[i] && columnValues[i] && regionValues[i]) {
-                allowedValues[allowedValues.length - 1] = i;
+        Set<Integer> rowValues = getValuesAllowedByRow(puzzle, rowOffset);
+        Set<Integer> columnValues = getValuesAllowedByColumn(puzzle, columnOffset);
+        Set<Integer> regionValues = getValuesAllowedByRegion(puzzle, columnOffset, rowOffset);
+
+        List<Integer> allowedValues = new ArrayList<Integer>();
+        for (Integer value : rowValues) {
+            if (columnValues.contains(value) && regionValues.contains(value)) {
+                allowedValues.add(value);
             }
         }
         for (int allowedValue : allowedValues) {
             System.out.println("allowedValue: " + allowedValue);
             puzzle[rowOffset][columnOffset] = allowedValue;
             System.out.println(puzzleToPrettyString(puzzle));
-            return solve(puzzle);
+            int[][] solve = solve(puzzle);
+            if (isComplete(solve)) {
+                return solve;
+            } else {
+                puzzle[rowOffset][columnOffset] = 0;
+            }
         }
-        throw new RuntimeException();
+        return puzzle;
     }
 
     private static int[] findFirstEmptyOffset(int[][] puzzle) {
@@ -196,7 +245,18 @@ public class Sudoku {
         return retVal;
     }
 
-    private static boolean[] getValuesAllowedByRow(int[][] puzzle, int rowOffset) {
+    private static Set<Integer> getAllowedValuesFromSeenArray(boolean[] seen) {
+        Set<Integer> allowedValues = new LinkedHashSet<Integer>();
+        for (int i = 1; i < seen.length; i++) {
+            boolean b = seen[i];
+            if (!b) {
+                allowedValues.add(i);
+            }
+        }
+        return allowedValues;
+    }
+
+    private static Set<Integer> getValuesAllowedByRow(int[][] puzzle, int rowOffset) {
         int[] row = puzzle[rowOffset];
         boolean[] seen = new boolean[10];
         for (int value : row) {
@@ -204,10 +264,10 @@ public class Sudoku {
                 seen[value] = true;
             }
         }
-        return invert(seen);
+        return getAllowedValuesFromSeenArray(seen);
     }
 
-    private static boolean[] getValuesAllowedByColumn(int[][] puzzle, int columnOffset) {
+    private static Set<Integer> getValuesAllowedByColumn(int[][] puzzle, int columnOffset) {
         boolean[] seen = new boolean[10];
         for (int[] row : puzzle) {
             int value = row[columnOffset];
@@ -215,11 +275,13 @@ public class Sudoku {
                 seen[value] = true;
             }
         }
-        return invert(seen);
+        return getAllowedValuesFromSeenArray(seen);
     }
 
-    private static boolean[] getValuesAllowedByRegion(int[][] puzzle, int columnOffset, int rowOffset) {
+    private static Set<Integer> getValuesAllowedByRegion(int[][] puzzle, int columnOffset, int rowOffset) {
         int[] containingRegion = getContainingRegion(columnOffset, rowOffset);
+        columnOffset = containingRegion[0];
+        rowOffset = containingRegion[1];
         boolean[] seen = new boolean[10];
         for (int i = 0; i < 3; i++) {
             int[] row = puzzle[rowOffset + i];
@@ -230,7 +292,7 @@ public class Sudoku {
                 }
             }
         }
-        return invert(seen);
+        return getAllowedValuesFromSeenArray(seen);
     }
 
     private static boolean isRowValid(int[] row) {
