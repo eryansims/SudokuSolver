@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This program is a Sudoku Solver. If you get stuck while playing Sudoku, you can
@@ -14,12 +15,13 @@ import java.util.Set;
  * @author Ryan Sims
  * @version November 16th 2018
  **/
+@SuppressWarnings("SpellCheckingInspection")
 public class Sudoku {
 
     private static final int[][] validRegionOffsets = new int[][]{
             {0, 0}, {3, 0}, {6, 0}, {0, 3}, {3, 3}, {6, 3}, {0, 6}, {3, 6}, {6, 6}};
 
-
+    @SuppressWarnings("unused")
     private static final String impossible
             = ". . . |. . 5 |. 8 . \n" +
               ". . . |6 . 1 |. 4 3 \n" +
@@ -46,7 +48,7 @@ public class Sudoku {
               ".....97..\n";
 
     // https://projecteuler.net/index.php?section=problems&id=96
-    public static final String completeValidPuzzle
+    private static final String completeValidPuzzle
             = "4 8 3 | 9 2 1 | 6 5 7 \n" +
               "9 6 7 | 3 4 5 | 8 2 1 \n" +
               "2 5 1 | 8 7 6 | 4 9 3 \n" +
@@ -59,7 +61,7 @@ public class Sudoku {
               "8 1 4 | 2 5 3 | 7 6 9 \n" +
               "6 9 5 | 4 1 7 | 3 8 2 \n";
 
-    public static final String nearlyNearlyCompleteValidPuzzle
+    private static final String nearlyNearlyCompleteValidPuzzle
             = "4 . . | 9 2 1 | 6 5 7 \n" +
               "9 6 7 | 3 4 5 | 8 2 1 \n" +
               "2 5 1 | 8 7 6 | 4 9 3 \n" +
@@ -72,7 +74,7 @@ public class Sudoku {
               "8 1 4 | 2 5 3 | 7 6 9 \n" +
               "6 9 5 | 4 1 7 | 3 8 2 \n";
 
-    public static final String nearlyCompleteValidPuzzle
+    private static final String nearlyCompleteValidPuzzle
             = ". 8 3 | 9 2 1 | 6 5 7 \n" +
               "9 6 7 | 3 4 5 | 8 2 1 \n" +
               "2 5 1 | 8 7 6 | 4 9 3 \n" +
@@ -100,7 +102,7 @@ public class Sudoku {
               "8 . . | . . . | . . . \n" +
               "2 1 . | . . . | . 8 7 \n";
 
-    public static final String ryansPuzzle
+    private static final String ryansPuzzle
             = "3 . 6 | 5 . 8 | 4 . . \n" +
               "5 2 . | . . . | . . . \n" +
               ". 8 7 | . . . | . 3 1 \n" +
@@ -113,34 +115,67 @@ public class Sudoku {
               ". . . | . . . | . 7 4 \n" +
               ". . 5 | 2 . 6 | 3 . . \n";
 
+    private static final String noSolution
+            = ". . 9 | . 2 8 | 7 . .\n" +
+              "8 . 6 | . . 4 | . . 5\n" +
+              ". . 3 | . . . | . . 4\n" +
+              "------+-------+------\n" +
+              "6 . . | . . . | . . .\n" +
+              ". 2 . | 7 1 3 | 4 5 .\n" +
+              ". . . | . . . | . . 2\n" +
+              "------+-------+------\n" +
+              "3 . . | . . . | 5 . .\n" +
+              "9 . . | 4 . . | 8 . 7\n" +
+              ". . 1 | 2 5 . | 3 . .\n";
 
     public static void main(String args[]) {
-        int[][] decoded = decodePuzzle(impossible);
+        processPuzzle(unsolvableDueToBox);
+        System.out.println("--------------\n\n");
+        processPuzzle(noSolution);
+        System.out.println("--------------\n\n");
+        processPuzzle(completeValidPuzzle);
+        System.out.println("--------------\n\n");
+        processPuzzle(nearlyCompleteValidPuzzle);
+        System.out.println("--------------\n\n");
+        processPuzzle(ryansPuzzle);
+        System.out.println("--------------\n\n");
+        processPuzzle(nearlyNearlyCompleteValidPuzzle);
+        System.out.println("--------------\n\n");
+        processPuzzle(hardForNorvig);
+        System.out.println("--------------\n\n");
+        processPuzzle(hardestEverForHumans);
+        System.out.println("--------------\n\n");
+//        processPuzzle(impossible);
+//        System.out.println("--------------\n\n");
+    }
+
+    private static void processPuzzle(String puzzle) {
+        int[][] decoded = decodePuzzle(puzzle);
         System.out.println("Input puzzle is:\n");
         System.out.println(puzzleToPrettyString(decoded));
-        System.out.println("Input puzzle isComplete " + isComplete(decoded));
-        System.out.println("Input puzzle isValid " + isValid(decoded));
-        try {
-            int[][] solved = solve(decoded);
-            System.out.println("Solved puzzle:\n");
-            System.out.println(puzzleToPrettyString(solved));
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println("Puzzle is unsolvable");
+        if (isValid(decoded)) {
+            AtomicInteger cycles = new AtomicInteger(0);
+            int[][] solved = solve(decoded, cycles);
+            if (isComplete(solved)) {
+                System.out.println("Solved puzzle in " + cycles + " cycle(s):\n");
+                System.out.println(puzzleToPrettyString(solved));
+            } else {
+                System.out.println("I can't solve that");
+            }
+        } else {
+            System.out.println("Input puzzle is not valid");
         }
     }
 
-    private static int[][] solve(int[][] puzzle) {
-        if (!isValid(puzzle)) {
-            throw new RuntimeException();
-        }
+    private static int[][] solve(int[][] puzzle, AtomicInteger cycles) {
+        cycles.incrementAndGet();
         int[] firstEmptyOffset = findFirstEmptyOffset(puzzle);
         if (firstEmptyOffset == null) {
             return puzzle; // Puzzle is solved
         }
         int rowOffset = firstEmptyOffset[1];
         int columnOffset = firstEmptyOffset[0];
-        System.out.println("rowOffset: " + rowOffset + ", columnOffset: " + columnOffset);
+        //System.out.println("rowOffset: " + rowOffset + ", columnOffset: " + columnOffset);
         Set<Integer> rowValues = getValuesAllowedByRow(puzzle, rowOffset);
         Set<Integer> columnValues = getValuesAllowedByColumn(puzzle, columnOffset);
         Set<Integer> regionValues = getValuesAllowedByRegion(puzzle, columnOffset, rowOffset);
@@ -152,16 +187,15 @@ public class Sudoku {
             }
         }
         for (int allowedValue : allowedValues) {
-            System.out.println("allowedValue: " + allowedValue);
+            //System.out.println("allowedValue: " + allowedValue);
             puzzle[rowOffset][columnOffset] = allowedValue;
-            System.out.println(puzzleToPrettyString(puzzle));
-            int[][] solve = solve(puzzle);
+            //System.out.println(puzzleToPrettyString(puzzle));
+            int[][] solve = solve(puzzle, cycles);
             if (isComplete(solve)) {
                 return solve;
-            } else {
-                puzzle[rowOffset][columnOffset] = 0;
             }
         }
+        puzzle[rowOffset][columnOffset] = 0;
         return puzzle;
     }
 
@@ -234,15 +268,6 @@ public class Sudoku {
             }
         }
         return true;
-    }
-
-    private static boolean[] invert(boolean[] array) {
-        boolean[] retVal = new boolean[array.length];
-        for (int i = 0; i < array.length; i++) {
-            boolean b = array[i];
-            retVal[i] = !b;
-        }
-        return retVal;
     }
 
     private static Set<Integer> getAllowedValuesFromSeenArray(boolean[] seen) {
@@ -346,7 +371,7 @@ public class Sudoku {
                     continue;
                 }
                 if (seen[value]) {
-                    System.out.println("isRegionValid[" + columnOffset + ", " + rowOffset + "]: But I've seen " + value);
+                    //System.out.println("isRegionValid[" + columnOffset + ", " + rowOffset + "]: But I've seen " + value);
                     return false;
                 }
                 seen[value] = true;
