@@ -2,8 +2,7 @@ package com.ryansims.sudoku;
 
 /**
  * This program is a Sudoku Solver. If you get stuck while playing Sudoku, you can
- * enter you’re puzzle into
- * the solver and the solver will give you the answers.
+ * enter your puzzle into the solver and the solver will give you the answers.
  *
  * @author Ryan Sims
  * @version November 16th 2018
