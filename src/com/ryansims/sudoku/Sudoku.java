@@ -8,16 +8,16 @@ package com.ryansims.sudoku;
  * @author Ryan Sims
  * @version November 16th 2018
  **/
-public class SudokuSolver {
+public class Sudoku {
 
     private int[][] puzzle;
 
-    private SudokuSolver(int[][] puzzle) {
+    private Sudoku(int[][] puzzle) {
         this.puzzle = puzzle;
     }
 
     public static void main(String args[]) {
-        new SudokuSolver(new int[][]{
+        new Sudoku(new int[][]{
                 {3, 0, 6, 5, 0, 8, 4, 0, 0},
                 {5, 2, 0, 0, 0, 0, 0, 0, 0},
                 {0, 8, 7, 0, 0, 0, 0, 3, 1},
