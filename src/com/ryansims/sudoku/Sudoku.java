@@ -30,6 +30,19 @@ public class Sudoku {
               "8 1 4 | 2 5 3 | 7 6 9 \n" +
               "6 9 5 | 4 1 7 | 3 8 2 \n";
 
+    public static final String nearlyCompleteValidPuzzle
+            = ". 8 3 | 9 2 1 | 6 5 7 \n" +
+              "9 6 7 | 3 4 5 | 8 2 1 \n" +
+              "2 5 1 | 8 7 6 | 4 9 3 \n" +
+              "------+-------+-------\n" +
+              "5 4 8 | 1 3 2 | 9 7 6 \n" +
+              "7 2 9 | 5 6 4 | 1 3 8 \n" +
+              "1 3 6 | 7 9 8 | 2 4 5 \n" +
+              "------+-------+-------\n" +
+              "3 7 2 | 6 8 9 | 5 1 4 \n" +
+              "8 1 4 | 2 5 3 | 7 6 9 \n" +
+              "6 9 5 | 4 1 7 | 3 8 2 \n";
+
 
     // http://sudopedia.enjoysudoku.com/Invalid_Test_Cases.html
     private static final String unsolvableDueToBox
@@ -45,32 +58,57 @@ public class Sudoku {
               "8 . . | . . . | . . . \n" +
               "2 1 . | . . . | . 8 7 \n";
 
-    private int[][] puzzle;
+    public static final String ryansPuzzle
+            = "3 . 6 | 5 . 8 | 4 . . \n" +
+              "5 2 . | . . . | . . . \n" +
+              ". 8 7 | . . . | . 3 1 \n" +
+              "------+-------+-------\n" +
+              ". . 3 | . 1 . | . 8 . \n" +
+              "9 . . | 8 6 3 | . . 5 \n" +
+              ". 5 . | . 9 . | 6 . . \n" +
+              "------+-------+-------\n" +
+              "1 3 . | . . . | 2 5 . \n" +
+              ". . . | . . . | . 7 4 \n" +
+              ". . 5 | 2 . 6 | 3 . . \n";
 
-    private Sudoku(int[][] puzzle) {
-        this.puzzle = puzzle;
-    }
 
     public static void main(String args[]) {
-        new Sudoku(new int[][]{
-                {3, 0, 6, 5, 0, 8, 4, 0, 0},
-                {5, 2, 0, 0, 0, 0, 0, 0, 0},
-                {0, 8, 7, 0, 0, 0, 0, 3, 1},
-                {0, 0, 3, 0, 1, 0, 0, 8, 0},
-                {9, 0, 0, 8, 6, 3, 0, 0, 5},
-                {0, 5, 0, 0, 9, 0, 6, 0, 0},
-                {1, 3, 0, 0, 0, 0, 2, 5, 0},
-                {0, 0, 0, 0, 0, 0, 0, 7, 4},
-                {0, 0, 5, 2, 0, 6, 3, 0, 0}
-        }).solve();
-        int[][] decoded = decodePuzzle(unsolvableDueToBox);
-        System.out.println("isComplete " + isComplete(decoded));
-        System.out.println("isValid " + isValid(decoded));
+        int[][] decoded = decodePuzzle(nearlyCompleteValidPuzzle);
+        System.out.println("Input puzzle is:\n");
         System.out.println(puzzleToPrettyString(decoded));
+        System.out.println("Input puzzle isComplete " + isComplete(decoded));
+        System.out.println("Input puzzle isValid " + isValid(decoded));
+        try {
+            int[][] solved = solve(decoded);
+            System.out.println("Solved puzzle:\n");
+            System.out.println(puzzleToPrettyString(solved));
+        } catch (Exception e) {
+            System.err.println("Puzzle is unsolvable");
+        }
     }
 
-    private void solve() {
+    private static int[][] solve(int[][] puzzle) {
+        if (!isValid(puzzle)) {
+            throw new RuntimeException();
+        }
+        int[] firstEmptyOffset = findFirstEmptyOffset(puzzle);
+        if (firstEmptyOffset == null) {
+            return puzzle; // Puzzle is solved
+        }
+        throw new RuntimeException();
+    }
 
+    private static int[] findFirstEmptyOffset(int[][] puzzle) {
+        for (int i = 0; i < puzzle.length; i++) {
+            int[] row = puzzle[i];
+            for (int j = 0; j < row.length; j++) {
+                int value = row[j];
+                if (value == 0) {
+                    return new int[]{j, i};
+                }
+            }
+        }
+        return null;
     }
 
     private static String puzzleToPrettyString(int[][] puzzle) {
@@ -201,13 +239,6 @@ public class Sudoku {
     }
 
     private static boolean isComplete(int[][] puzzle) {
-        for (int[] row : puzzle) {
-            for (int value : row) {
-                if (value < 1) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return findFirstEmptyOffset(puzzle) == null;
     }
 }
