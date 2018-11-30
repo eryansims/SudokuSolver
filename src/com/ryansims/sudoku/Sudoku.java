@@ -95,6 +95,24 @@ public class Sudoku {
         if (firstEmptyOffset == null) {
             return puzzle; // Puzzle is solved
         }
+        int rowOffset = firstEmptyOffset[1];
+        int columnOffset = firstEmptyOffset[0];
+        System.out.println("rowOffset: " + rowOffset + ", columnOffset: " + columnOffset);
+        boolean[] rowValues = getValuesAllowedByRow(puzzle, rowOffset);
+        boolean[] columnValues = getValuesAllowedByColumn(puzzle, columnOffset);
+        boolean[] regionValues = getValuesAllowedByRegion(puzzle, columnOffset, rowOffset);
+        int[] allowedValues = new int[9];
+        for (int i = 1; i < rowValues.length; i++) {
+            if (rowValues[i] && columnValues[i] && regionValues[i]) {
+                allowedValues[allowedValues.length - 1] = i;
+            }
+        }
+        for (int allowedValue : allowedValues) {
+            System.out.println("allowedValue: " + allowedValue);
+            puzzle[rowOffset][columnOffset] = allowedValue;
+            System.out.println(puzzleToPrettyString(puzzle));
+            return solve(puzzle);
+        }
         throw new RuntimeException();
     }
 
@@ -167,6 +185,52 @@ public class Sudoku {
             }
         }
         return true;
+    }
+
+    private static boolean[] invert(boolean[] array) {
+        boolean[] retVal = new boolean[array.length];
+        for (int i = 0; i < array.length; i++) {
+            boolean b = array[i];
+            retVal[i] = !b;
+        }
+        return retVal;
+    }
+
+    private static boolean[] getValuesAllowedByRow(int[][] puzzle, int rowOffset) {
+        int[] row = puzzle[rowOffset];
+        boolean[] seen = new boolean[10];
+        for (int value : row) {
+            if (value != 0) {
+                seen[value] = true;
+            }
+        }
+        return invert(seen);
+    }
+
+    private static boolean[] getValuesAllowedByColumn(int[][] puzzle, int columnOffset) {
+        boolean[] seen = new boolean[10];
+        for (int[] row : puzzle) {
+            int value = row[columnOffset];
+            if (value != 0) {
+                seen[value] = true;
+            }
+        }
+        return invert(seen);
+    }
+
+    private static boolean[] getValuesAllowedByRegion(int[][] puzzle, int columnOffset, int rowOffset) {
+        int[] containingRegion = getContainingRegion(columnOffset, rowOffset);
+        boolean[] seen = new boolean[10];
+        for (int i = 0; i < 3; i++) {
+            int[] row = puzzle[rowOffset + i];
+            for (int j = 0; j < 3; j++) {
+                int value = row[columnOffset + j];
+                if (value != 0) {
+                    seen[value] = true;
+                }
+            }
+        }
+        return invert(seen);
     }
 
     private static boolean isRowValid(int[] row) {
