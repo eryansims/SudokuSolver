@@ -270,11 +270,11 @@ public class Sudoku {
         return true;
     }
 
-    private static Set<Integer> getAllowedValuesFromSeenArray(boolean[] seen) {
+    private static Set<Integer> getAllowedValuesFromSeenArray(int[] seen) {
         Set<Integer> allowedValues = new LinkedHashSet<Integer>();
         for (int i = 1; i < seen.length; i++) {
-            boolean b = seen[i];
-            if (!b) {
+            int value = seen[i];
+            if (value > 0) {
                 allowedValues.add(i);
             }
         }
@@ -282,73 +282,74 @@ public class Sudoku {
     }
 
     private static Set<Integer> getValuesAllowedByRow(int[][] puzzle, int rowOffset) {
-        int[] row = puzzle[rowOffset];
-        boolean[] seen = new boolean[10];
+        int[] seen = getValueCountsForRow(puzzle[rowOffset]);
+        return getAllowedValuesFromSeenArray(seen);
+    }
+
+    private static int[] getValueCountsForRow(int[] row) {
+        int[] seen = new int[10];
         for (int value : row) {
             if (value != 0) {
-                seen[value] = true;
+                seen[value]++;
             }
         }
-        return getAllowedValuesFromSeenArray(seen);
+        return seen;
     }
 
     private static Set<Integer> getValuesAllowedByColumn(int[][] puzzle, int columnOffset) {
-        boolean[] seen = new boolean[10];
-        for (int[] row : puzzle) {
-            int value = row[columnOffset];
-            if (value != 0) {
-                seen[value] = true;
-            }
-        }
+        int[] seen = getValueCountsForColumn(puzzle, columnOffset);
         return getAllowedValuesFromSeenArray(seen);
     }
 
+    private static int[] getValueCountsForColumn(int[][] puzzle, int columnOffset) {
+        int[] seen = new int[10];
+        for (int[] row : puzzle) {
+            int value = row[columnOffset];
+            if (value != 0) {
+                seen[value]++;
+            }
+        }
+        return seen;
+    }
+
     private static Set<Integer> getValuesAllowedByRegion(int[][] puzzle, int columnOffset, int rowOffset) {
+        int[] seen = getValueCountsForRegion(puzzle, columnOffset, rowOffset);
+        return getAllowedValuesFromSeenArray(seen);
+    }
+
+    private static int[] getValueCountsForRegion(int[][] puzzle, int columnOffset, int rowOffset) {
         int[] containingRegion = getContainingRegion(columnOffset, rowOffset);
         columnOffset = containingRegion[0];
         rowOffset = containingRegion[1];
-        boolean[] seen = new boolean[10];
+        int[] seen = new int[10];
         for (int i = 0; i < 3; i++) {
             int[] row = puzzle[rowOffset + i];
             for (int j = 0; j < 3; j++) {
                 int value = row[columnOffset + j];
                 if (value != 0) {
-                    seen[value] = true;
+                    seen[value]++;
                 }
             }
         }
-        return getAllowedValuesFromSeenArray(seen);
+        return seen;
     }
 
     private static boolean isRowValid(int[] row) {
-        boolean[] seen = new boolean[10];
-        for (int value : row) {
-            if (value == 0) {
-                continue;
-            }
-            if (seen[value]) {
-                System.out.println("isRowValid: But I've seen " + value);
+        int[] valueCounts = getValueCountsForRow(row);
+        return isUnitValid(valueCounts);
+    }
+
+    private static boolean isUnitValid(int[] valueCounts) {
+        for (int valueCount : valueCounts) {
+            if (valueCount > 1) {
                 return false;
             }
-            seen[value] = true;
         }
         return true;
     }
 
     private static boolean isColumnValid(int[][] puzzle, int columnOffset) {
-        boolean[] seen = new boolean[10];
-        for (int[] row : puzzle) {
-            int value = row[columnOffset];
-            if (value == 0) {
-                continue;
-            }
-            if (seen[value]) {
-                System.out.println("isColumnValid[" + columnOffset + "]: But I've seen " + value);
-                return false;
-            }
-            seen[value] = true;
-        }
-        return true;
+        return isUnitValid(getValueCountsForColumn(puzzle, columnOffset));
     }
 
     private static int[] getContainingRegion(int columnOffset, int rowOffset) {
@@ -362,22 +363,7 @@ public class Sudoku {
         if (!areRegionOffsetsValid(columnOffset, rowOffset)) {
             throw new RuntimeException();
         }
-        boolean[] seen = new boolean[10];
-        for (int i = 0; i < 3; i++) {
-            int[] row = puzzle[rowOffset + i];
-            for (int j = 0; j < 3; j++) {
-                int value = row[columnOffset + j];
-                if (value == 0) {
-                    continue;
-                }
-                if (seen[value]) {
-                    //System.out.println("isRegionValid[" + columnOffset + ", " + rowOffset + "]: But I've seen " + value);
-                    return false;
-                }
-                seen[value] = true;
-            }
-        }
-        return true;
+        return isUnitValid(getValueCountsForRegion(puzzle, columnOffset, rowOffset));
     }
 
     private static boolean areRegionOffsetsValid(int columnOffset, int rowOffset) {
